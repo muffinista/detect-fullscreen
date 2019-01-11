@@ -9,3 +9,4 @@ os:
 cache:
   directories:
     - "node_modules"
+script: yarn rebuild
