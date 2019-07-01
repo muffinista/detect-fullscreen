@@ -21,7 +21,13 @@
           ],
           'link_settings': {
             'libraries': [
-              '-framework Carbon'
+              '-framework Carbon',
+              '-framework AppKit',
+            ]
+          },
+          'xcode_settings': {
+            'OTHER_CFLAGS': [
+                '-ObjC++'
             ]
           }
         }],

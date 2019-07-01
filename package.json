@@ -1,6 +1,6 @@
 {
   "name": "detect-fullscreen",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "author": "Colin Mitchell <colin@muffinlabs.com> (http://muffinlabs.com)",
   "homepage": "https://github.com/muffinista/detect-fullscreen/",
   "description": "Detect if local machine has a fullscreen app running",
@@ -10,13 +10,15 @@
   "scripts": {
     "configure": "node-gyp configure",
     "build": "node-gyp build",
-    "rebuild": "node-gyp configure && node-gyp build"
+    "rebuild": "node-gyp configure && node-gyp build",
+    "test": "rimraf build && npm run rebuild && node ./test.js"
   },
   "devDependencies": {
-    "node-gyp": "^3.8.0"
+    "node-gyp": "^5.0.1",
+    "rimraf": "^2.6.3"
   },
   "dependencies": {
-    "nan": "^2.12.0",
-    "bindings": "^1.3.0"
+    "nan": "^2.14.0",
+    "bindings": "^1.5.0"
   }
 }

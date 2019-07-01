@@ -1,8 +1,8 @@
 #include <nan.h>
-//#include <assert.h>
 
 #ifdef IS_MAC
 #include <Carbon/Carbon.h>
+#include <AppKit/AppKit.h>
 #define NOT_FULLSCREEN_KEY "Menubar"
 #endif
 
@@ -14,40 +14,39 @@ NAN_METHOD(isFullscreen);
 
 // Example with node ObjectWrap
 // Based on https://nodejs.org/api/addons.html#addons_wrapping_c_objects but using NAN
-class MyObject : public Nan::ObjectWrap {
+class Fullscreen : public Nan::ObjectWrap {
   public:
     static NAN_MODULE_INIT(Init);
 
   private:
-    explicit MyObject();
-    ~MyObject();
+    explicit Fullscreen();
+    ~Fullscreen();
 
     static NAN_METHOD(New);
     static Nan::Persistent<v8::Function> constructor;
 };
 
+Nan::Persistent<v8::Function> Fullscreen::constructor;
 
-Nan::Persistent<v8::Function> MyObject::constructor;
-
-NAN_MODULE_INIT(MyObject::Init) {
+NAN_MODULE_INIT(Fullscreen::Init) {
   v8::Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>(New);
-  tpl->SetClassName(Nan::New("MyObject").ToLocalChecked());
+  tpl->SetClassName(Nan::New("Fullscreen").ToLocalChecked());
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
   constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
-  Nan::Set(target, Nan::New("MyObject").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
+  Nan::Set(target, Nan::New("Fullscreen").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
 }
 
-//MyObject::MyObject(double value) : value_(value) {
-MyObject::MyObject() {
+//Fullscreen::Fullscreen(double value) : value_(value) {
+Fullscreen::Fullscreen() {
 }
 
-MyObject::~MyObject() {
+Fullscreen::~Fullscreen() {
 }
 
-NAN_METHOD(MyObject::New) {
+NAN_METHOD(Fullscreen::New) {
   if (info.IsConstructCall()) {
-    MyObject *obj = new MyObject();
+    Fullscreen *obj = new Fullscreen();
     obj->Wrap(info.This());
     info.GetReturnValue().Set(info.This());
   } 
@@ -117,41 +116,103 @@ bool IsFullScreenWindowMode() {
 //bool Method(napi_env env, napi_callback_info info) {
 NAN_METHOD(isFullscreen) {
   #ifdef IS_MAC
-    CGDisplayCount nDisplays;
 
-    CFStringRef str = CFStringCreateWithCString(NULL, NOT_FULLSCREEN_KEY, kCFStringEncodingASCII);
-    char *buffer = (char *)malloc(1200);
-    unsigned int tally = 0;
+  //
+  // this code is lightly adapted from
+  //
+  // https://chromium.googlesource.com/experimental/chromium/src/+/refs/wip/bajones/webvr_1/chrome/browser/fullscreen_mac.mm
+  // and
+  // https://chromium.googlesource.com/external/webrtc/+/HEAD/modules/desktop_capture/mac/window_list_utils.cc
+  //
+  // it tries a few things to detect any fullscreen windows:
+  // - first, it checks a couple of presentation options for the
+  // currently active app -- see https://developer.apple.com/documentation/appkit/nsapplication/1428717-currentsystempresentationoptions
+  // basically, if the active app is hiding the dock and menu, we assume fullscreen mode
+  //
+  // - second, we check the bounds and positioning of every non-system window. if any of them
+  // match or exceed the size of their display, we assume fullscreen mode
 
-    CFArrayRef windowList = CGWindowListCopyWindowInfo(
-      kCGWindowListOptionOnScreenOnly, kCGNullWindowID);
-      
-    CFIndex numWindows = CFArrayGetCount( windowList );
-      
-    for( int i = 0; i < (int)numWindows; i++ ) {
-      CFDictionaryRef info = (CFDictionaryRef)CFArrayGetValueAtIndex(
-        windowList, i);
 
-      CFStringRef windowName = (CFStringRef)CFDictionaryGetValue(
-        info, kCGWindowName);
+  NSApplicationPresentationOptions options =
+      [NSApp currentSystemPresentationOptions];
+  bool dock_hidden = (options & NSApplicationPresentationHideDock) ||
+                      (options & NSApplicationPresentationAutoHideDock);
+  bool menu_hidden = (options & NSApplicationPresentationHideMenuBar) ||
+                      (options & NSApplicationPresentationAutoHideMenuBar);
+  bool result = false;
 
-      if (windowName != 0) {
-        // if there's a menubar, it's not in fullscreen
-        CFStringGetCString(windowName, buffer, 400, kCFStringEncodingUTF8);
-        if ( CFStringCompare(windowName, str, 0) == 0 ) {
-          tally++;
+  if (
+    // if the main display has been captured (by games in particular) we are
+    // in fullscreen mode
+    // NOTE: this call is deprecated so just skipping it
+    //    CGDisplayIsCaptured(CGMainDisplayID()) ||
+
+    // If both dock and menu bar are hidden, that is the equivalent of the Carbon
+    // SystemUIMode (or Info.plist's LSUIPresentationMode) kUIModeAllHidden.
+    (dock_hidden && menu_hidden) ||
+    (options & NSApplicationPresentationFullScreen)
+    ) {
+      result = true;
+    }
+    else {
+      // lets iterate through a bunch of windows
+      // and check their bounds against our monitor resolutions
+
+      // get a list of all visible windows
+      CFArrayRef windowList = CGWindowListCopyWindowInfo(
+        kCGWindowListOptionOnScreenOnly | kCGWindowListExcludeDesktopElements, kCGNullWindowID);
+      CFIndex numWindows = CFArrayGetCount( windowList );
+
+      // get a list of all the monitors in use
+      NSArray<NSScreen *> *screens = [NSScreen screens];
+
+      // iterate through each window
+      for( int i = 0; i < (int)numWindows; i++ ) {
+        CFDictionaryRef windowInfo = (CFDictionaryRef)CFArrayGetValueAtIndex(
+          windowList, i);
+
+        // Get the window layer and then skip windows with layer!=0 (menu, dock).
+        // As I understand it kCGWindowLayer==0 is basically a 'normal' window
+        int layer;
+        CFNumberRef window_layer = reinterpret_cast<CFNumberRef>(
+            CFDictionaryGetValue(windowInfo, kCGWindowLayer));
+
+        if (!window_layer || 
+          !CFNumberGetValue(window_layer, kCFNumberIntType, &layer) || 
+          layer != 0) {
+          continue;
+        }
+
+        // get the bounds of the window
+        CFDictionaryRef bounds_ref = reinterpret_cast<CFDictionaryRef>(
+          CFDictionaryGetValue(windowInfo, kCGWindowBounds));
+        CGRect bounds;
+
+        if (!bounds_ref ||
+          !CGRectMakeWithDictionaryRepresentation(bounds_ref, &bounds)) {
+          continue;
+        }
+
+        // compare the bounds of this window to the bounds
+        // of each screen
+        for (NSScreen *screen in screens) {
+          NSRect e = [screen frame];
+          if ( bounds.size.width >= e.size.width && 
+                bounds.size.height >= e.size.height && 
+                bounds.origin.x <= e.origin.x && 
+                bounds.origin.y <= e.origin.y ) {
+
+            result = true;
+            break;
+          }
         }
       }
+
+      CFRelease(windowList);
     }
-    CFRelease(windowList);
-    CFRelease(str);
 
-    // tally is the count of screens which are not in fullscreen mode
+    info.GetReturnValue().Set(result);
 
-    CGGetActiveDisplayList(0,0, &nDisplays);
-
-    // if nDisplays == tally, then we're not in fullscreen mode
-    info.GetReturnValue().Set((nDisplays != tally));
   #endif
 
   #ifdef IS_WINDOWS
@@ -166,7 +227,7 @@ NAN_MODULE_INIT(InitAll) {
     Nan::GetFunction(Nan::New<FunctionTemplate>(isFullscreen)).ToLocalChecked());
 
   // Passing target down to the next NAN_MODULE_INIT
-  MyObject::Init(target);
+  Fullscreen::Init(target);
 }
 
 NODE_MODULE(Fullscreen, InitAll);
