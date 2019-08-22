@@ -1,4 +1,5 @@
 #include <nan.h>
+#include <iostream>
 
 #ifdef IS_MAC
 #include <Carbon/Carbon.h>
@@ -166,6 +167,10 @@ NAN_METHOD(isFullscreen) {
       // get a list of all the monitors in use
       NSArray<NSScreen *> *screens = [NSScreen screens];
 
+      #ifdef DEBUG_OUTPUT
+      char *buffer = (char *)malloc(1200);
+      #endif
+
       // iterate through each window
       for( int i = 0; i < (int)numWindows; i++ ) {
         CFDictionaryRef windowInfo = (CFDictionaryRef)CFArrayGetValueAtIndex(
@@ -193,13 +198,31 @@ NAN_METHOD(isFullscreen) {
           continue;
         }
 
+        #ifdef DEBUG_OUTPUT
+        CFStringRef windowName = (CFStringRef)CFDictionaryGetValue(windowInfo, kCGWindowName);
+        CFStringGetCString(windowName, buffer, 400, kCFStringEncodingUTF8);
+        #endif
+
+
         // compare the bounds of this window to the bounds
         // of each screen
         for (NSScreen *screen in screens) {
           NSRect e = [screen frame];
+          #ifdef DEBUG_OUTPUT
+          std::cout << buffer << " " << bounds.size.width << "x" << bounds.size.height << ":" << bounds.origin.x << "," << bounds.origin.y << " -- " << e.size.width << "x" << e.size.height << ":" << e.origin.x << ","  << e.origin.y << "\n";
+          #endif
+
+          //
+          // compare the window dimensions to each set of screen dimensions. we assume it might
+          // be full screen iff:
+          // - the window width and height exceed the screen width/height
+          // - the x origins are equal
+          // - the y origin of the window is less than or equal to the y origin of the window
+          //   which accounts for the possibility of the screen y actually being greater 
+          //   than the window y
           if ( bounds.size.width >= e.size.width && 
                 bounds.size.height >= e.size.height && 
-                bounds.origin.x <= e.origin.x && 
+                bounds.origin.x == e.origin.x && 
                 bounds.origin.y <= e.origin.y ) {
 
             result = true;
