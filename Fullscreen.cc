@@ -253,8 +253,8 @@ NAN_MODULE_INIT(InitAll) {
   Fullscreen::Init(target);
 }
 
+#if NODE_MAJOR_VERSION >= 10
+NAN_MODULE_WORKER_ENABLED(Fullscreen, InitAll);
+#else
 NODE_MODULE(Fullscreen, InitAll);
-
-
-
-
+#endif
