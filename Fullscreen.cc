@@ -136,10 +136,17 @@ NAN_METHOD(isFullscreen) {
 
   NSApplicationPresentationOptions options =
       [NSApp currentSystemPresentationOptions];
-  bool dock_hidden = (options & NSApplicationPresentationHideDock) ||
-                      (options & NSApplicationPresentationAutoHideDock);
-  bool menu_hidden = (options & NSApplicationPresentationHideMenuBar) ||
-                      (options & NSApplicationPresentationAutoHideMenuBar);
+
+  // assume full screen mode iff the current app is actively
+  // hiding the dock and menu. if they are both set to auto-hide,
+  // they might actually be visible so we don't count that
+  bool dock_hidden = options & NSApplicationPresentationHideDock;
+  bool menu_hidden = options & NSApplicationPresentationHideMenuBar;
+
+  // bool dock_hidden = (options & NSApplicationPresentationHideDock) ||
+  //                     (options & NSApplicationPresentationAutoHideDock);
+  // bool menu_hidden = (options & NSApplicationPresentationHideMenuBar) ||
+  //                     (options & NSApplicationPresentationAutoHideMenuBar);
   bool result = false;
 
   if (
@@ -153,6 +160,9 @@ NAN_METHOD(isFullscreen) {
     (dock_hidden && menu_hidden) ||
     (options & NSApplicationPresentationFullScreen)
     ) {
+      #ifdef DEBUG_OUTPUT
+      std::cout << "active app is hiding menu and dock\n";
+      #endif
       result = true;
     }
     else {
