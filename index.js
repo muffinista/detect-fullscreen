@@ -1,2 +1,2 @@
-var Fullscreen = require('bindings')('Fullscreen');
-module.exports = Fullscreen;
+const fullscreen = require('./build/Release/Fullscreen');
+module.exports = fullscreen;
