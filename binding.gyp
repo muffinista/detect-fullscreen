@@ -2,10 +2,7 @@
   "targets": [
     {
       "target_name": "Fullscreen",
-      "sources": [ "Fullscreen.cc" ],
-      "include_dirs": [
-        "<!(node -e \"require('nan')\")"
-      ],
+      "sources": [ "src/fullscreen.cc" ],
       'cflags': [
         '-Wall',
         '-Wparentheses',
@@ -15,7 +12,9 @@
       ],
       'conditions': [
         ['OS == "mac"', {
-          'defines': ['IS_MAC'],
+          'sources': [
+            'src/mac/fullscreen.mm'
+          ],
           'include_dirs': [
             'System/Library/Frameworks/Carbon.Framework/Headers'
           ],
@@ -32,7 +31,14 @@
           }
         }],
         ["OS=='win'", {
-          'defines': ['IS_WINDOWS']
+          'sources': [
+            'src/win/fullscreen.cc'
+          ]
+        }],
+        ["OS=='linux'", {
+          'sources': [
+            'src/unsupported/fullscreen.cc'
+          ]
         }]
       ]
     }
