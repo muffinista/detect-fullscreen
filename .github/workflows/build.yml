@@ -6,19 +6,12 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-2019, windows-latest, macOS-10.15, macos-11]
-        node-version: [16.x]
+        node-version: [16.15.0]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Use Node.js
-      uses: actions/setup-node@v2
+      uses: actions/setup-node@v3
       with:
         node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    # - name: Patch node-gyp
-    #   if: ${{ matrix.os == 'windows-latest' }}
-    #   shell: powershell
-    #   run: |
-    #     npm install --global node-gyp@latest
-    #     npm prefix -g | % {npm config set node_gyp "$_\node_modules\node-gyp\bin\node-gyp.js"}
     - name: Build
       run: npm i
