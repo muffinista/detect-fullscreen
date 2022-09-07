@@ -7,7 +7,6 @@
         '-Wall',
         '-Wparentheses',
         '-Winline',
-        '-Wbad-function-cast',
         '-Wdisabled-optimization'
       ],
       'conditions': [
