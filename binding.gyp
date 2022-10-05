@@ -8,7 +8,11 @@
         '-Wparentheses',
         '-Winline',
         '-Wbad-function-cast',
-        '-Wdisabled-optimization'
+        '-Wdisabled-optimization',
+        '-std=c++17'
+      ],
+      'cflags_cc': [
+        '-std=c++17'
       ],
       'conditions': [
         ['OS == "mac"', {
@@ -33,7 +37,10 @@
         ["OS=='win'", {
           'sources': [
             'src/win/fullscreen.cc'
-          ]
+          ],
+          'msvs_settings': {
+            'VCCLCompilerTool': { "ExceptionHandling": 1, 'AdditionalOptions': [ '-std:c++17' ] }
+          }
         }],
         ["OS=='linux'", {
           'sources': [
