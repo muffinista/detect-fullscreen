@@ -1,6 +1,6 @@
 {
   "name": "detect-fullscreen",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "author": "Colin Mitchell <colin@muffinlabs.com> (http://muffinlabs.com)",
   "homepage": "https://github.com/muffinista/detect-fullscreen/",
   "description": "Detect if local machine has a fullscreen app running",
@@ -11,6 +11,6 @@
     "test": "rimraf build && npm rebuild && node ./test.js"
   },
   "devDependencies": {
-    "rimraf": "^3.0.0"
+    "rimraf": "^5.0.0"
   }
 }
