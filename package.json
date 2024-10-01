@@ -1,6 +1,6 @@
 {
   "name": "detect-fullscreen",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "author": "Colin Mitchell <colin@muffinlabs.com> (http://muffinlabs.com)",
   "homepage": "https://github.com/muffinista/detect-fullscreen/",
   "description": "Detect if local machine has a fullscreen app running",
