@@ -6,12 +6,12 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-2019, windows-latest, macOS-10.15, macos-11]
-        node-version: [16.15.0]
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Use Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
-        node-version: ${{ matrix.node-version }}
+        node-version-file: '.nvmrc'
+        cache: 'npm'
     - name: Build
       run: npm i
