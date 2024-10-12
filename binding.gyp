@@ -30,7 +30,8 @@
           },
           'xcode_settings': {
             'OTHER_CFLAGS': [
-                '-ObjC++'
+                '-ObjC++',
+                '-std=c++20'
             ]
           }
         }],
