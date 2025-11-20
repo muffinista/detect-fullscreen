@@ -5,13 +5,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-2019, windows-latest, macos-latest, macos-15, macos-13]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: ["lts/*"]
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Use Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
-        node-version-file: '.nvmrc'
+        node-version: ${{ matrix.node-version }}
         cache: 'npm'
     - name: Build
       run: npm i
